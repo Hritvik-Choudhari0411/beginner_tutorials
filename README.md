@@ -32,7 +32,7 @@ cd .. # Make sure you are in the source directory of ROS 2 and not in src
 rosdep install -i --from-path src --rosdistro humble -y
 
 # Build the package using colcon build
---packages-select ros2_cpp_pubsub
+colcon build --packages-select ros2_cpp_pubsub
 
 # Source your setup file
 . install/setup.bash
