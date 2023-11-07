@@ -1,0 +1,2 @@
+Invoking command in '/home/hac/ros2_ws/src/beginner_tutorials/src/build/ros2_cpp_pubsub': /usr/bin/cmake /home/hac/ros2_ws/src/beginner_tutorials/src/ros2_cpp_pubsub -DCMAKE_INSTALL_PREFIX=/home/hac/ros2_ws/src/beginner_tutorials/src/install/ros2_cpp_pubsub
+Invoked command in '/home/hac/ros2_ws/src/beginner_tutorials/src/build/ros2_cpp_pubsub' returned '1': /usr/bin/cmake /home/hac/ros2_ws/src/beginner_tutorials/src/ros2_cpp_pubsub -DCMAKE_INSTALL_PREFIX=/home/hac/ros2_ws/src/beginner_tutorials/src/install/ros2_cpp_pubsub
