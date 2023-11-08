@@ -29,6 +29,7 @@ source /opt/ros/humble/setup.bash
 cd .. # Make sure you are in the source directory of ROS 2 and not in src
 
 # Install rosdep dependencies before building the package
+cd src/
 rosdep install -i --from-path src --rosdistro humble -y
 
 # Build the package using colcon build
@@ -44,7 +45,7 @@ To run the `publisher` and `subscriber`.
 
 ```sh
 # Run the publisher in Terminal 1
-ros2 run beginner_tutorials talker
+ros2 run ros2_cpp_pubsub talker
 ```
 
 ```sh
@@ -54,7 +55,7 @@ cd < path_to_your_workspace >
 . install/setup.bash
  
 # Run the publisher in Terminal 2
-ros2 run beginner_tutorial listener
+ros2 run ros2_cpp_pubsub listener
 ```
 ## Cpplint and CppCheck
 ```sh
