@@ -51,17 +51,12 @@ cd .. # Make sure you are in the source directory of ROS 2 and not in src
 source /opt/ros/humble/setup.bash
 
 # Install rosdep dependencies before building the package
+cd src/
 rosdep install -i --from-path src --rosdistro humble -y
 
 # Build the package using colcon build
-colcon build --packages-select beginner_tutorials
-```
+--packages-select ros2_cpp_pubsub
 
-### Run
-
-After the successful build, to run, open a new terminal
-
-```sh
 # Source your setup file
 cd ~/ros2_ws
 
@@ -89,6 +84,7 @@ cd ~/ros2_ws
 ```
 
 ```sh
+# Run the publisher in Terminal 1
 ros2 run beginner_tutorials talker
 ```
 
@@ -110,10 +106,9 @@ To launch the `server` node in terminal 3
 cd ~/ros2_ws
 
 . install/setup.bash
-```
-
-```sh
-ros2 run beginner_tutorials server
+ 
+# Run the publisher in Terminal 2
+ros2 run beginner_tutorial listener
 ```
 
 ### Change the ```frequency``` parameter
