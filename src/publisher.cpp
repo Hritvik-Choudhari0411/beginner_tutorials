@@ -1,171 +1,171 @@
-/******************************************************************************
-  *MIT License
+// Copyright 2016 Open Source Robotics Foundation, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-  *Copyright (c) 2022
-
-  *Permission is hereby granted, free of charge, to any person obtaining a copy
-  *of this software and associated documentation files (the "Software"), to deal
-  *in the Software without restriction, including without limitation the rights
-  *to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  *copies of the Software, and to permit persons to whom the Software is
-  *furnished to do so, subject to the following conditions:
-
-  *The above copyright notice and this permission notice shall be included in all
-  *copies or substantial portions of the Software.
-
-  *THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  *IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  *FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  *AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  *LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  *OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  *SOFTWARE.
-  ******************************************************************************/
 /**
  * @file publisher.cpp
  * @author Hritvik Choudhari (hac@umd.edu)
- * @brief ROS services - Publisher node
+ * @brief Publisher file
  * @version 0.2
- * @date 2023-11-13
+ * @date 2022-11-14
  *
- * @copyright MIT Copyright (c) 2022
+ * @copyright Copyright (c) 2022
  *
  */
-
 
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <sstream>
 #include <string>
 
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
-#include "beginner_tutorials/srv/string_mod.hpp"
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <beginner_tutorials/srv/string_mod.hpp>
 
+using std::placeholders::_1;
 using namespace std::chrono_literals;
+
+using sharedFuture = rclcpp::Client<beginner_tutorials::srv::StringMod>::SharedFuture;
+
 /**
- * @brief The Class definition for the node minimal_publisher
- *
+ * @brief MinimalPublisher class, defines the publisher, service client and the
+ * associated function
  */
 class MinimalPublisher : public rclcpp::Node {
  public:
   /**
    * @brief Construct a new Minimal Publisher object
-   *
    */
   MinimalPublisher() : Node("minimal_publisher"), count_(0) {
-    this->declare_parameter("Publisher_Frequency",
-                            1.0);  // Declare the parameter Publisher_Frequency
-    publisher_ = this->create_publisher<std_msgs::msg::String>(
-        "topic", 10);  // 10 is the queue size
+    // Parameter Declaration
+    auto param_desc = rcl_interfaces::msg::ParameterDescriptor();
+    param_desc.description = "Setting callback freq.";
+    this->declare_parameter("freq", 1.0, param_desc);
+    auto param = this->get_parameter("freq");
+    auto freq = param.get_parameter_value().get<std::float_t>();
+    RCLCPP_DEBUG(this->get_logger(),
+                 "Parameter freq declared, set to default 1.0 hz");
 
-    double freq = 1.0;  // Default frequency
+    // Creating a subscriber for the parameter
+    param_subscriber_ =
+        std::make_shared<rclcpp::ParameterEventHandler>(this);
+    auto parameterCallbackPtr =
+        std::bind(&MinimalPublisher::param_cb, this, _1);
+    param_handle_ = param_subscriber_->add_parameter_callback(
+        "freq", parameterCallbackPtr);
 
-    if (this->get_parameter("Publisher_Frequency")
-            .get_parameter_value()
-            .get<double>() > 0.0) {  // Check if the frequency is greater
-                                    // than 0, set the frequency to
-                                   // the parameter value
-      freq = this->get_parameter("Publisher_Frequency")
-                        .get_parameter_value()
-                        .get<double>();
-      RCLCPP_DEBUG_STREAM(this->get_logger(), "Talker publishing at "
-                                                  << freq << " Hz"
-                                                  << std::endl);
-    } else if (this->get_parameter("Publisher_Frequency")
-                   .get_parameter_value()
-                   .get<double>() < 0.0) {  // If the frequency is negative, set
-                                           // it to the default value
-      RCLCPP_FATAL_STREAM(this->get_logger(),
-                          "Positive value of frequency expected" << std::endl);
-      RCLCPP_WARN_STREAM(this->get_logger(),
-                         "Talker frequency set to default value of 1.0Hz"
-                             << std::endl);
-      freq = 1.0;
-    } else if (this->get_parameter("Publisher_Frequency")
-                   .get_parameter_value()
-                   .get<double>() ==
-               0.0) {  // If the frequency is zero, set it to the default value
-      RCLCPP_FATAL_STREAM(this->get_logger(),
-                          "Frequency cant be zero" << std::endl);
-      RCLCPP_WARN_STREAM(this->get_logger(),
-                         "Talker frequency set to default value of 1.0Hz"
-                             << std::endl);
-      freq = 1.0;
-    }
-
+    publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
+    RCLCPP_DEBUG(this->get_logger(), "Publisher is Created");
+    auto delta = std::chrono::milliseconds(static_cast<int>((1000 / freq)));
     timer_ = this->create_wall_timer(
-        std::chrono::duration<double>(freq),
-        std::bind(&MinimalPublisher::timer_cb, this));
-    server_ = this->create_service<beginner_tutorials::srv::StringMod>(
-        "string_change",
-        std::bind(&MinimalPublisher::string_mod_cb, this,
-                  std::placeholders::_1, std::placeholders::_2));
+        delta, std::bind(&MinimalPublisher::timer_cb, this));
+
+    client = this->create_client<beginner_tutorials::srv::StringMod>("modify_msg");
+    RCLCPP_DEBUG(this->get_logger(), "Client created");
+    while (!client->wait_for_service(1s)) {
+      if (!rclcpp::ok()) {
+        RCLCPP_FATAL(rclcpp::get_logger("rclcpp"), "Interrupted");
+        exit(EXIT_FAILURE);
+      }
+      RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Service unavailable, waiting for server to start");
+    }
   }
 
  private:
+  std::string Message;
+  rclcpp::Client<beginner_tutorials::srv::StringMod>::SharedPtr client;
+  std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> param_handle_;
+
   /**
-   * @brief Callback function for the timer which will loop the publisher and
-   * publish the message
-   *
+   * @brief Timer callback function, sets the message data and publishes the
+   * message and also calls the service at every 10 counts
    */
   void timer_cb() {
+    RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Node setup");
     auto message = std_msgs::msg::String();
-    message.data = msg + std::to_string(count_++);
-    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+    message.data = "Message published ID " + std::to_string(count_++);
+    RCLCPP_INFO(this->get_logger(), "Outgoing signal : '%s'", message.data.c_str());
     publisher_->publish(message);
+    if (count_ % 10 == 0) {
+      service_cb();
+    }
+    auto steady_clock = rclcpp::Clock();
+    RCLCPP_DEBUG_STREAM_THROTTLE(this->get_logger(), steady_clock, 10000,
+                                 "Node running successfully");
   }
+
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-  rclcpp::Service<beginner_tutorials::srv::StringMod>::SharedPtr
-      server_;
   size_t count_;
-  std::string msg = "Message published : ";  // Default message
+
   /**
-   * @brief service callback function to change the message being published
-   *
-   * @param request  The service request
-   * @param response  The service response
+   * @brief Service callback function, defines the service parameters and calls the
+   * response
+   * @return int
    */
-  void string_mod_cb(
-      const beginner_tutorials::srv::StringMod::Request::SharedPtr request,
-      const beginner_tutorials::srv::StringMod::Response::SharedPtr
-          response) {
-    if (request->input == "reset") {  // If the input is reset, set the message
-                                     // to the default message
-      RCLCPP_WARN_STREAM(this->get_logger(),
-                         "Resetting the string" << std::endl);
-      RCLCPP_INFO_STREAM(this->get_logger(),
-                         "New string is:" << msg << std::endl);
-      msg = "Message published : ";
-      response->output = msg;
-    } else if (request->input.empty()) {  // If the input is empty, set the
-                                         // message to the default message
-      RCLCPP_ERROR_STREAM(this->get_logger(),
-                          "Empty string received" << std::endl);
-      RCLCPP_WARN_STREAM(this->get_logger(),
-                         "No change will be made to the original string"
-                             << std::endl);
-    } else {  // If the input is not empty or reset,
-             // set the message to the input
-      msg = request->input;
-      RCLCPP_INFO_STREAM(this->get_logger(), "New string received");
-      response->output = msg;
-      RCLCPP_INFO_STREAM(this->get_logger(),
-                         "Incoming request\nThe New String is: "
-                             << msg.c_str() << std::endl);
-      RCLCPP_INFO_STREAM(this->get_logger(), "Sending response to talker: "
-                                                 << msg.c_str() << std::endl);
+  int service_cb() {
+    auto request = std::make_shared<beginner_tutorials::srv::StringMod::Request>();
+    request->a = "Message 1";
+    request->b = " Message 2";
+    RCLCPP_INFO(this->get_logger(), "Service called to Modify string");
+    auto callbackPtr =
+        std::bind(&MinimalPublisher::response_cb, this, _1);
+    client->async_send_request(request, callbackPtr);
+    return 1;
+  }
+
+  /**
+   * @brief Response callback function, calls the response for the service_cb
+   * function
+   * @param future
+   */
+  void response_cb(sharedFuture future) {
+    // Process the response
+    RCLCPP_INFO(this->get_logger(), "Got String: %s", future.get()->c.c_str());
+    Message = future.get()->c.c_str();
+  }
+
+  /**
+   * @brief Parameter callback function, assigns the updated value of the
+   * parameter
+   * @param param
+   */
+  void param_cb(const rclcpp::Parameter &param) {
+    RCLCPP_INFO(this->get_logger(),
+                "cb: Received an update to parameter \"%s\" of type %s: %.2f",
+                param.get_name().c_str(), param.get_type_name().c_str(),
+                param.as_double());
+    RCLCPP_WARN(this->get_logger(), "Message frequency changed");
+
+    RCLCPP_FATAL_EXPRESSION(this->get_logger(), param.as_double() == 0.0,
+                            "Frequency is set to zero, zero division error");
+    if (param.as_double() == 0.0) {
+      RCLCPP_ERROR(this->get_logger(), "Frequency has not been changed.");
+    } else {
+      auto delta = std::chrono::milliseconds(
+          static_cast<int>((1000 / param.as_double())));
+      timer_ = this->create_wall_timer(
+          delta, std::bind(&MinimalPublisher::timer_cb, this));
     }
   }
 };
+
 /**
- * @brief Main function for the node which initializes the node and spins it
- *
- * @param argc  The number of arguments
- * @param argv  The arguments
- * @return int  The return value
+ * @brief Main function
+ * @param argc
+ * @param argv
+ * @return int
  */
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);

@@ -24,9 +24,9 @@
 /**
  * @file subscriber.cpp
  * @author Hritvik Choudhari (hac@umd.edu)
- * @brief ROS service - Suscriber node
+ * @brief Subscriber file
  * @version 0.12
- * @date 2022-11-13
+ * @date 2022-11-14
  *
  * @copyright MIT Copyright (c) 2022
  *
@@ -38,41 +38,45 @@
 #include "std_msgs/msg/string.hpp"
 
 using std::placeholders::_1;
+
 /**
- * @brief The Class definition for the node minimal_subscriber
+ * @brief MinimalSubscriber class
  *
+ * Subscribes to a topic and displays incoming signals.
  */
 class MinimalSubscriber : public rclcpp::Node {
  public:
   /**
    * @brief Construct a new Minimal Subscriber object
-   *
    */
   MinimalSubscriber() : Node("minimal_subscriber") {
     subscription_ = this->create_subscription<std_msgs::msg::String>(
-        "topic", 10, std::bind(&MinimalSubscriber::topic_cb, this, _1));
+        "topic", 10, std::bind(&MinimalSubscriber::topic_callback, this, _1));
   }
 
  private:
   /**
-   * @brief Callback funtion to print what the listener heard from the publisher
+   * @brief Callback function for the subscribed topic
    *
-   * @param msg  The message that the listener heard from the publisher
+   * @param msg The incoming message from the topic
    */
-  void topic_cb(const std_msgs::msg::String &msg) const {
-    RCLCPP_INFO(this->get_logger(), "Message received: %s", msg.data.c_str());
+  void topic_callback(const std_msgs::msg::String& msg) const {
+    RCLCPP_INFO(this->get_logger(), "Incoming signal : '%s'", msg.data.c_str());
   }
+
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
 };
+
 /**
- * @brief Main function for the node minimal_subscriber that initializes the
- * node and spins it
+ * @brief Main function
  *
- * @param argc  Number of arguments  (Argument Count)
- * @param argv  Arguments (Argument vector)
- * @return int  Returns 0 on successful execution
+ * Initializes the ROS 2 node, spins it, and shuts it down.
+ *
+ * @param argc Number of command line arguments
+ * @param argv Array of command line arguments
+ * @return int Program exit code
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<MinimalSubscriber>());
   rclcpp::shutdown();

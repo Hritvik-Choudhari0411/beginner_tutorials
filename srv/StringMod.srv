@@ -1,3 +1,4 @@
-string input
+string a
+string b
 ---
-string output
+string c
