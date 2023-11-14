@@ -2,7 +2,29 @@
 
 ## Overview
 
-Beginner tutorial for creating a simple `publisher` and `subscriber` in C++ for ROS2 (Humble).
+Beginner tutorial for creating a simple `publisher` and `subscriber` with `service` in C++ for ROS2 (Humble).
+
+## Task
+
+- Modify the publisher node to publish a custom string message
+
+- Create a launch file that launches both nodes and accepts at least one command-line argument that modifies one or both nodes in some way.
+
+- Modify the tutorial code to follow Google C++ Style Guide (with course modifications)
+
+- Run cpplint on your ROS package files and save the output as a text file to the results folder
+
+- Run cppcheck on your ROS package files and save the output as a text file to the results folder
+
+## Dependencies
+
+- rclcpp
+
+- stdmsgs
+
+- OS: Ubuntu Linux 22.04
+
+- ROS Version: ROS2 Humble Hawksbill
 
 ## Building and Running
 
@@ -23,61 +45,114 @@ git clone https://github.com/Hritvik-Choudhari0411/beginner_tutorials.git
 To build the package follow the following steps
 
 ```sh
+cd .. # Make sure you are in the source directory of ROS 2 and not in src
+
 # Source to ROS2 HUMBLE
 source /opt/ros/humble/setup.bash
-
-cd .. # Make sure you are in the source directory of ROS 2 and not in src
 
 # Install rosdep dependencies before building the package
 rosdep install -i --from-path src --rosdistro humble -y
 
 # Build the package using colcon build
---packages-select ros2_cpp_pubsub
-
-# Source your setup file
-. install/setup.bash
+colcon build --packages-select beginner_tutorials
 ```
 
 ### Run
 
-To run the `publisher` and `subscriber`.
+After the successful build, to run, open a new terminal
 
 ```sh
-# Run the publisher in Terminal 1
+# Source your setup file
+cd ~/ros2_ws
+
+. install/setup.bash
+```
+
+### Using the launch file
+
+To run the launch file and initate the publisher, subscriber and the service
+
+```sh
+cd ~/ros2_ws/src/beginner_tutorials/launch
+
+ros2 launch ros_services_logging.yaml frequency:=2.0
+```
+
+### Launch the nodes
+
+To launch the `publisher` node in terminal 1,
+
+```sh
+cd ~/ros2_ws
+
+. install/setup.bash
+```
+
+```sh
 ros2 run beginner_tutorials talker
 ```
 
-```sh
-cd < path_to_your_workspace >
+To launch the `subscriber` node in terminal 2
 
-# Source your setup file
+```sh
+cd ~/ros2_ws
+
 . install/setup.bash
- 
-# Run the publisher in Terminal 2
-ros2 run beginner_tutorial listener
 ```
-## Cpplint and CppCheck
+
 ```sh
-# Run the below command for cppcheck inside the root directory of your workspace
-cppcheck --enable=all --std=c++17 --suppress=missingIncludeSystem $( find . -name *.cpp | grep -vE -e "^./build/" ) --check-config > results/cppcheck.txt
-
-# Run the below command for cpplint by moving into root directory of your workspace 
-cpplint --filter=-build/c++11,+build/c++17,-build/namespaces,-build/include_order  src/cpp_pubsub/src/*.cpp >  results/cpplint.txt
+ros2 run beginner_tutorials listener
 ```
 
-## Dependencies
+To launch the `server` node in terminal 3
 
-- [ROS2 Humble](https://docs.ros.org/en/humble/index.html)
-- CMake Version 3.8 or greater
-- C++ 17 or newer
+```sh
+cd ~/ros2_ws
+
+. install/setup.bash
+```
+
+```sh
+ros2 run beginner_tutorials server
+```
+
+### Change the ```frequency``` parameter
+
+```sh
+ros2 param set \minimal_publisher freq 10.0
+```
+
+## Cppcheck and Cpplint
+
+To run the CppCheck
+
+```sh
+sh cppcheck.sh
+```
+
+To run the Cpplint
+
+```sh
+sh cpplint.sh
+```
 
 ## Results
 
-Left : Talker (Publisher)
+Publisher, Subscriber and Service nodes
 
-Right: Listener (Subscriber)
+![](results/ros2_services.png)
 
-![](results/pubsub.png)
+rqt_console
+
+![](results/ros2_services_console.png)
+
+rqt_graph
+
+![](results/ros2_services_rqtgraph.png)
+
+## References
+
+[1] http://docs.ros.org/en/humble/index.html
 
 ## Assumptions
 
