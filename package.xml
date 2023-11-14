@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>ROS2 services</description>
   <maintainer email="hac@umd.edu">Hritvik Choudhari</maintainer>
-  <license>Apache License 2.0</license>
+  <license>MIT</license>
 
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>

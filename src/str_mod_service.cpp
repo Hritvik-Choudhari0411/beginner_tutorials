@@ -61,7 +61,6 @@ int main(int argc, char **argv) {
 
   // Shutdown the ROS 2 node
   rclcpp::shutdown();
-  
   // Return program exit code
   return 0;
 }

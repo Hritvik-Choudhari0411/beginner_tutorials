@@ -23,19 +23,19 @@
  *
  */
 
+#include <beginner_tutorials/srv/string_mod.hpp>
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <string>
-
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
-#include <beginner_tutorials/srv/string_mod.hpp>
+#include <string>
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
-using sharedFuture = rclcpp::Client<beginner_tutorials::srv::StringMod>::SharedFuture;
+using sharedFuture =
+    rclcpp::Client<beginner_tutorials::srv::StringMod>::SharedFuture;
 
 /**
  * @brief MinimalPublisher class, defines the publisher, service client and the
@@ -57,12 +57,11 @@ class MinimalPublisher : public rclcpp::Node {
                  "Parameter freq declared, set to default 1.0 hz");
 
     // Creating a subscriber for the parameter
-    param_subscriber_ =
-        std::make_shared<rclcpp::ParameterEventHandler>(this);
+    param_subscriber_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
     auto parameterCallbackPtr =
         std::bind(&MinimalPublisher::param_cb, this, _1);
-    param_handle_ = param_subscriber_->add_parameter_callback(
-        "freq", parameterCallbackPtr);
+    param_handle_ =
+        param_subscriber_->add_parameter_callback("freq", parameterCallbackPtr);
 
     publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
     RCLCPP_DEBUG(this->get_logger(), "Publisher is Created");
@@ -70,14 +69,16 @@ class MinimalPublisher : public rclcpp::Node {
     timer_ = this->create_wall_timer(
         delta, std::bind(&MinimalPublisher::timer_cb, this));
 
-    client = this->create_client<beginner_tutorials::srv::StringMod>("modify_msg");
+    client =
+        this->create_client<beginner_tutorials::srv::StringMod>("modify_msg");
     RCLCPP_DEBUG(this->get_logger(), "Client created");
     while (!client->wait_for_service(1s)) {
       if (!rclcpp::ok()) {
         RCLCPP_FATAL(rclcpp::get_logger("rclcpp"), "Interrupted");
         exit(EXIT_FAILURE);
       }
-      RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Service unavailable, waiting for server to start");
+      RCLCPP_WARN(rclcpp::get_logger("rclcpp"),
+                  "Service unavailable, waiting for server to start");
     }
   }
 
@@ -95,7 +96,8 @@ class MinimalPublisher : public rclcpp::Node {
     RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Node setup");
     auto message = std_msgs::msg::String();
     message.data = "Message published ID " + std::to_string(count_++);
-    RCLCPP_INFO(this->get_logger(), "Outgoing signal : '%s'", message.data.c_str());
+    RCLCPP_INFO(this->get_logger(), "Outgoing signal : '%s'",
+                message.data.c_str());
     publisher_->publish(message);
     if (count_ % 10 == 0) {
       service_cb();
@@ -110,17 +112,17 @@ class MinimalPublisher : public rclcpp::Node {
   size_t count_;
 
   /**
-   * @brief Service callback function, defines the service parameters and calls the
-   * response
+   * @brief Service callback function, defines the service parameters and calls
+   * the response
    * @return int
    */
   int service_cb() {
-    auto request = std::make_shared<beginner_tutorials::srv::StringMod::Request>();
+    auto request =
+        std::make_shared<beginner_tutorials::srv::StringMod::Request>();
     request->a = "Message 1";
     request->b = " Message 2";
     RCLCPP_INFO(this->get_logger(), "Service called to Modify string");
-    auto callbackPtr =
-        std::bind(&MinimalPublisher::response_cb, this, _1);
+    auto callbackPtr = std::bind(&MinimalPublisher::response_cb, this, _1);
     client->async_send_request(request, callbackPtr);
     return 1;
   }

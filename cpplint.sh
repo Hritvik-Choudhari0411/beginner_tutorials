@@ -1,0 +1,1 @@
+cpplint --filter=-build/c++11,+build/c++17,-build/namespaces,-build/include_order src/publisher.cpp src/subscriber.cpp src/str_mod_service.cpp > results/cpplint.txt
