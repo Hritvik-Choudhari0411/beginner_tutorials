@@ -121,6 +121,75 @@ ros2 run beginner_tutorial server
 ros2 param set \minimal_publisher freq 10.0
 ```
 
+## Verifying tf
+
+Open 5 terminals and run ```. install/setup.bash``` in all terminals in ```~/ros2_ws/``` directory.
+
+### To start static tf publisher
+
+```sh
+# Terminal 1:
+ros2 run beginner_tutorials talker
+```
+
+### To see the transform on terminal
+
+```sh
+# Terminal 2:
+ros2 run tf2_ros tf2_echo world talk
+```
+
+### To store the tf tree
+
+```sh
+# Terminal 3:
+ros2 run beginner_tutorials server
+```
+
+### To store the tf tree
+
+```sh
+# Terminal 4:
+cd ~/ros2_ws/src/beginner_tutorials/results
+
+ros2 run tf2_tools view_frames
+```
+
+### To record a bag file
+
+```sh
+# Terminal 5:
+cd ~/ros2_ws/src/beginner_tutorials/launch
+
+ros2 launch beginner_tutorials ros_bag_record.xml bag_record:=1
+```
+
+### To check info of recorded bag file
+
+```sh
+cd ~/ros2_ws/src/beginner_tutorials/results
+
+ros2 bag info all_topics
+```
+
+### To run the recorded bag file
+
+run ```. install/setup.bash``` in all terminals
+
+```sh
+# Terminal 1:
+cd ~/ros2_ws/
+
+ros2 run beginner_tutorials listener
+```
+
+```sh
+# Terminal 2:
+cd ~/ros2_ws/src/beginner_tutorials/results
+
+ros2 bag play all_topics
+```
+
 ## Cppcheck and Cpplint
 
 To run the CppCheck
@@ -148,6 +217,14 @@ rqt_console
 rqt_graph
 
 ![rqt_graph](results/ros2_services_rqtgraph.png)
+
+bag file record
+
+![rqt_graph](results/ros2_bag_record.png)
+
+bag file info
+
+![rqt_graph](results/ros2_bag_info.png)
 
 ## References
 
