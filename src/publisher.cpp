@@ -1,45 +1,50 @@
 /******************************************************************************
-  *MIT License
+ *MIT License
+ *
+ *Copyright (c) 2022
+ *
+ *Permission is hereby granted, free of charge, to any person obtaining a copy
+ *of this software and associated documentation files (the "Software"), to deal
+ *in the Software without restriction, including without limitation the rights
+ *to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *copies of the Software, and to permit persons to whom the Software is
+ *furnished to do so, subject to the following conditions:
+ *
+ *The above copyright notice and this permission notice shall be included in
+ *all *copies or substantial portions of the Software.
+ *
+ *THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *SOFTWARE.
+ ******************************************************************************/
 
-  *Copyright (c) 2022
-
-  *Permission is hereby granted, free of charge, to any person obtaining a copy
-  *of this software and associated documentation files (the "Software"), to deal
-  *in the Software without restriction, including without limitation the rights
-  *to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  *copies of the Software, and to permit persons to whom the Software is
-  *furnished to do so, subject to the following conditions:
-
-  *The above copyright notice and this permission notice shall be included in
-  all *copies or substantial portions of the Software.
-
-  *THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  *IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  *FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  *AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  *LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  *OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  *SOFTWARE.
-  ******************************************************************************/
-  
 /**
  * @file publisher.cpp
  * @author Hritvik Choudhari (hac@umd.edu)
  * @brief Publisher file
  * @version 0.2
- * @date 2022-11-14
+ * @date 2022-11-21
  *
  * @copyright Copyright (c) 2022
  *
  */
 
-#include <beginner_tutorials/srv/string_mod.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+
 #include <chrono>
 #include <functional>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <string>
+
+#include <beginner_tutorials/srv/string_mod.hpp>
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
@@ -67,11 +72,12 @@ class MinimalPublisher : public rclcpp::Node {
                  "Parameter freq declared, set to default 1.0 hz");
 
     // Creating a subscriber for the parameter
-    param_subscriber_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
+    parameter_subscriber_ =
+        std::make_shared<rclcpp::ParameterEventHandler>(this);
     auto parameterCallbackPtr =
         std::bind(&MinimalPublisher::param_cb, this, _1);
-    param_handle_ =
-        param_subscriber_->add_parameter_callback("freq", parameterCallbackPtr);
+    parameter_handle_ = parameter_subscriber_->add_parameter_callback(
+        "freq", parameterCallbackPtr);
 
     publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
     RCLCPP_DEBUG(this->get_logger(), "Publisher is Created");
@@ -90,18 +96,41 @@ class MinimalPublisher : public rclcpp::Node {
       RCLCPP_WARN(rclcpp::get_logger("rclcpp"),
                   "Service unavailable, waiting for server to start");
     }
+
+    // Broadcast a tf frame
+    tf_static_broadcaster_ =
+        std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+    geometry_msgs::msg::TransformStamped t;
+
+    t.header.stamp = this->get_clock()->now();
+    t.header.frame_id = "world";  // Parent "/world"
+    t.child_frame_id = "talk";    // Child "/talk"
+
+    // Translation block
+    t.transform.translation.x = 1;
+    t.transform.translation.y = 2;
+    t.transform.translation.z = 3;
+
+    // Rotation block
+    t.transform.rotation.x = 1;
+    t.transform.rotation.y = 0.5;
+    t.transform.rotation.z = -1;
+    t.transform.rotation.w = 0;
+
+    tf_static_broadcaster_->sendTransform(t);
   }
 
  private:
   std::string Message;
+  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
   rclcpp::Client<beginner_tutorials::srv::StringMod>::SharedPtr client;
-  std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
-  std::shared_ptr<rclcpp::ParameterCallbackHandle> param_handle_;
+  std::shared_ptr<rclcpp::ParameterEventHandler> parameter_subscriber_;
+  std::shared_ptr<rclcpp::ParameterCallbackHandle> parameter_handle_;
 
-  /**
-   * @brief Timer callback function, sets the message data and publishes the
-   * message and also calls the service at every 10 counts
-   */
+  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+  size_t count_;
+
   void timer_cb() {
     RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Node setup");
     auto message = std_msgs::msg::String();
@@ -117,15 +146,6 @@ class MinimalPublisher : public rclcpp::Node {
                                  "Node running successfully");
   }
 
-  rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-  size_t count_;
-
-  /**
-   * @brief Service callback function, defines the service parameters and calls
-   * the response
-   * @return int
-   */
   int service_cb() {
     auto request =
         std::make_shared<beginner_tutorials::srv::StringMod::Request>();
@@ -137,22 +157,11 @@ class MinimalPublisher : public rclcpp::Node {
     return 1;
   }
 
-  /**
-   * @brief Response callback function, calls the response for the service_cb
-   * function
-   * @param future
-   */
   void response_cb(sharedFuture future) {
-    // Process the response
     RCLCPP_INFO(this->get_logger(), "Got String: %s", future.get()->c.c_str());
     Message = future.get()->c.c_str();
   }
 
-  /**
-   * @brief Parameter callback function, assigns the updated value of the
-   * parameter
-   * @param param
-   */
   void param_cb(const rclcpp::Parameter &param) {
     RCLCPP_INFO(this->get_logger(),
                 "cb: Received an update to parameter \"%s\" of type %s: %.2f",
@@ -173,12 +182,6 @@ class MinimalPublisher : public rclcpp::Node {
   }
 };
 
-/**
- * @brief Main function
- * @param argc
- * @param argv
- * @return int
- */
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<MinimalPublisher>());

@@ -53,15 +53,9 @@ source /opt/ros/humble/setup.bash
 # Install rosdep dependencies before building the package
 rosdep install -i --from-path src --rosdistro humble -y
 
-# Build the package using colcon build
+# Build the package using 
 colcon build --packages-select beginner_tutorials
-```
 
-### Run
-
-After the successful build, to run, open a new terminal
-
-```sh
 # Source your setup file
 cd ~/ros2_ws
 
@@ -89,6 +83,8 @@ cd ~/ros2_ws
 ```
 
 ```sh
+# Run the publisher in Terminal 1
+
 ros2 run beginner_tutorials talker
 ```
 
@@ -101,6 +97,8 @@ cd ~/ros2_ws
 ```
 
 ```sh
+# Run the subscriber in Terminal 2
+
 ros2 run beginner_tutorials listener
 ```
 
@@ -110,16 +108,86 @@ To launch the `server` node in terminal 3
 cd ~/ros2_ws
 
 . install/setup.bash
-```
-
+ ```
 ```sh
-ros2 run beginner_tutorials server
+# Run the server in Terminal 3
+
+ros2 run beginner_tutorial server
 ```
 
 ### Change the ```frequency``` parameter
 
 ```sh
 ros2 param set \minimal_publisher freq 10.0
+```
+
+## Verifying tf
+
+Open 5 terminals and run ```. install/setup.bash``` in all terminals in ```~/ros2_ws/``` directory.
+
+### To start static tf publisher
+
+```sh
+# Terminal 1:
+ros2 run beginner_tutorials talker
+```
+
+### To see the transform on terminal
+
+```sh
+# Terminal 2:
+ros2 run tf2_ros tf2_echo world talk
+```
+
+### To store the tf tree
+
+```sh
+# Terminal 3:
+ros2 run beginner_tutorials server
+```
+
+### To store the tf tree
+
+```sh
+# Terminal 4:
+cd ~/ros2_ws/src/beginner_tutorials/results
+
+ros2 run tf2_tools view_frames
+```
+
+### To record a bag file
+
+```sh
+# Terminal 5:
+cd ~/ros2_ws/src/beginner_tutorials/launch
+
+ros2 launch beginner_tutorials ros_bag_record.xml bag_record:=1
+```
+
+### To check info of recorded bag file
+
+```sh
+cd ~/ros2_ws/src/beginner_tutorials/results
+
+ros2 bag info all_topics
+```
+
+### To run the recorded bag file
+
+run ```. install/setup.bash``` in all terminals
+
+```sh
+# Terminal 1:
+cd ~/ros2_ws/
+
+ros2 run beginner_tutorials listener
+```
+
+```sh
+# Terminal 2:
+cd ~/ros2_ws/src/beginner_tutorials/results
+
+ros2 bag play all_topics
 ```
 
 ## Cppcheck and Cpplint
@@ -140,15 +208,23 @@ sh cpplint.sh
 
 Publisher, Subscriber and Service nodes
 
-![](results/ros2_services.png)
+![Publisher, Subscriber and Service nodes](results/ros2_services.png)
 
 rqt_console
 
-![](results/ros2_services_console.png)
+![rqt_console](results/ros2_services_console.png)
 
 rqt_graph
 
-![](results/ros2_services_rqtgraph.png)
+![rqt_graph](results/ros2_services_rqtgraph.png)
+
+bag file record
+
+![rqt_graph](results/ros2_bag_record.png)
+
+bag file info
+
+![rqt_graph](results/ros2_bag_info.png)
 
 ## References
 
